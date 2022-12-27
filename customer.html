@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Customers</title>
+    <script src="https://cdn.jsdelivr.net/npm/axios@1.1.2/dist/axios.min.js"></script>
+    <link
+            href="https://getbootstrap.com/docs/4.1/dist/css/bootstrap.min.css"
+            rel="stylesheet">
+    <link href="style.css" rel="stylesheet">
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.6.1/jquery.min.js"></script>
+
+</head>
+<body >
+   
+<!-- //////////////////// Add Customer View /////////////////// -->
+
+<div class="px-4 pt-5 my-5 text-center border-bottom" style="padding-top:5px; text-align: center;">
+ <form id="customerform" onsubmit="event.preventDefault();">
+    <h1 class="display-4 fw-bold">Customers</h1>
+    <br>
+    <label>Name</label><input  id="cust_name" type="text"   required>
+    <label>City</label><input id="cust_city" type="text"   required>
+    <label>Age</label><input id="cust_age" type="number"   required>
+    <br><br>
+    <button class="w-50 btn btn-lg btn-success" onclick="add_cust()">
+       <!-- adding image to button -->
+       <svg xmlns="http://www.w3.org/2000/svg" width="30" height="30" fill="currentColor" class="bi bi-person-fill-add" viewBox="0 0 16 16">
+        <path d="M12.5 16a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7Zm.5-5v1h1a.5.5 0 0 1 0 1h-1v1a.5.5 0 0 1-1 0v-1h-1a.5.5 0 0 1 0-1h1v-1a.5.5 0 0 1 1 0Zm-2-6a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z"/>
+        <path d="M2 13c0 1 1 1 1 1h5.256A4.493 4.493 0 0 1 8 12.5a4.49 4.49 0 0 1 1.544-3.393C9.077 9.038 8.564 9 8 9c-5 0-6 3-6 4Z"/>
+      </svg>
+        <!-- end -->
+    </button>
+    <br><br>
+</form>
+
+    <div> <label>Search by name</label> <input id="search_name" onkeyup="buildDisplayCusts()"></div>
+    <br><br>
+    <div id="custsDisplay">
+        <table id="listTable" class="table table-striped">
+            <thead class="table-dark">
+              <tr>
+                <th scope="col">Name</th>
+                <th scope="col">City</th>
+                <th scope="col">Age</th>
+                <th scope="col"></th>
+              </tr>
+            </thead>
+            <tbody id="tableBody"> 
+            </tbody>
+          </table>
+    </div>
+    
+</div>
+
+<!-- //////////////////// Logic /////////////////// -->
+    <script>
+      
+    
+        const MY_SERVER_CUSTS = "http://127.0.0.1:5000/custs"
+        let custs = []
+
+        ///Load and Display all customers in the table
+        const buildDisplayCusts = () => {
+            tableBody.innerHTML=custs.data.filter(x => x.name.toLowerCase().includes(search_name.value)).map(c => ` <tr>
+                <td><label>${c.name}</label><input id="cust_name1" value='${c.name}' style="display: none;" type="text"  ></input></td>
+                <td><label>${c.city}</label><input id="cust_city1" value='${c.city}' style="display: none;" type="text"  ></input></td>
+                <td><label>${c.age}</label><input id="cust_age1" value='${c.age}' style="display: none;" type="number"  ></input></td>
+                <td><button class="btn btn-danger" onClick="del_cust('${c.id}')">Delete</button> <button id='updBtn' class="btn btn-primary" onClick="editbtn(this,'${c.id}')">update</button>&nbsp;<button id='cancelbtn'  style="display: none;"  class="btn btn-primary" onClick="cancelFunc(this)">cancel</button></td>
+            </tr>`).join("")
+
+       }
+     //////////////////// edit functions ///////////////////
+       const cancelFunc = async(b) => {
+            tr=$(b).closest('tr')
+            tr.find('#updBtn').text("update");
+            tr.find('#cancelbtn').hide();
+            $.each(tr.find('label'),function () {
+                $(this).show();
+            });
+            $.each(tr.find('input'),function () {
+                $(this).hide();
+            });
+       }
+       const editbtn = async(b,id) => {
+        //alert("edit");
+        tr=$(b).closest('tr')
+        if ($(b).text() =="update") {
+            tr=$(b).closest('tr')
+            tr.find('#updBtn').text("save");
+            tr.find('#cancelbtn').show();
+            $.each(tr.find('label'),function () {
+                $(this).hide();
+            });
+            $.each(tr.find('input'),function () {
+                $(this).show();
+            });
+        }
+        else {//save
+           var inputs= tr.find('input');
+           let x=await upd_cust(id,inputs[0].value,inputs[1].value,inputs[2].value)  
+           if(x) {
+            cancelFunc(b);
+            loadData()  
+           }
+                            
+    }
+      }
+        //////////////////// main Load data to display all data of page /////////////////// 
+        // Read
+        const loadData = async () => {
+            custs = await axios.get(MY_SERVER_CUSTS)     
+            buildDisplayCusts()
+        }
+        loadData()
+
+        
+        //////////////////// Customers /////////////////// 
+        // Add - customer
+        const add_cust = async() => {
+            if(cust_name.value==""){
+                alert("Please enter customer name")
+                return 
+            }
+            if(cust_city.value==""){
+                alert("Please enter city")
+                return 
+            }
+            if(cust_age.value==""){
+                alert("Please enter age")
+                return 
+            }
+            if(isNaN(cust_age.value)){
+                alert("Please enter number in age ")
+                return 
+            }
+            let cust ={ name: cust_name.value,city:cust_city.value,age:cust_age.value  }
+            console.log(cust)
+            let addcust=await axios.post(MY_SERVER_CUSTS+"/", cust)
+            loadData()
+        }
+        //delete customer
+        const del_cust = async(id) => {
+            let delcust=await axios.delete(MY_SERVER_CUSTS + "/" + id)
+                        .then(response => {
+                                    // Handle response
+                                    alert(response.data) 
+                                    loadData()
+                                })
+                                .catch(err => {
+                                    // Handle errors
+                                    console.error(err);
+                                });
+           
+        }
+        //update customer
+        const upd_cust =async (id,name,city,age) => {
+            if(name==""){
+                alert("Please enter customer name")
+                return false
+            }
+            if(city==""){
+                alert("Please enter city")
+                return false
+            }
+            if(age==""){
+                alert("Please enter age")
+                return false
+            }
+            if(isNaN(age)){
+                alert("Please enter number in age ")
+                return false
+            }
+            console.log(cust.value)
+            let updcust=await axios.put(MY_SERVER_CUSTS + "/" + id,{ name: name,city:city,age:age   })
+            return true
+            
+          
+        }
+        
+          
+    </script>
+</body>
+
+</html>
